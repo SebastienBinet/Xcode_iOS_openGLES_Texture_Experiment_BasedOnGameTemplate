@@ -8,14 +8,18 @@
 
 #import "GameViewController.h"
 #import <OpenGLES/ES2/glext.h>
+#include "Grid_image_256x256_3_BytesPerPixel.h"
+
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
+#define ADD_CHECKERBOARD_TEXTURE 1
 
 // Uniform index.
 enum
 {
     UNIFORM_MODELVIEWPROJECTION_MATRIX,
-    UNIFORM_NORMAL_MATRIX,
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  UNIFORM_NORMAL_MATRIX,
     NUM_UNIFORMS
 };
 GLint uniforms[NUM_UNIFORMS];
@@ -24,10 +28,63 @@ GLint uniforms[NUM_UNIFORMS];
 enum
 {
     ATTRIB_VERTEX,
-    ATTRIB_NORMAL,
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  ATTRIB_NORMAL,
+    ATTRIB_TEXTURE,
     NUM_ATTRIBUTES
 };
 
+const int tileMultiplier = 1;
+const float maxUV = 1.0f * tileMultiplier;
+
+
+#if ADD_CHECKERBOARD_TEXTURE
+GLfloat gCubeVertexData[ 8 * 6 * 6 ] =
+{
+    // Data layout for each line below is:
+   //posX,  posY,  posZ      normalX, normY, normZ,        U,    V
+     0.5f, -0.5f, -0.5f,        1.0f,  0.0f,  0.0f,      0.00,  0.00,
+     0.5f,  0.5f, -0.5f,        1.0f,  0.0f,  0.0f,     maxUV,  0.00,
+     0.5f, -0.5f,  0.5f,        1.0f,  0.0f,  0.0f,      0.00, maxUV,
+     0.5f, -0.5f,  0.5f,        1.0f,  0.0f,  0.0f,      0.00, maxUV,
+     0.5f,  0.5f, -0.5f,        1.0f,  0.0f,  0.0f,     maxUV,  0.00,
+     0.5f,  0.5f,  0.5f,        1.0f,  0.0f,  0.0f,     maxUV, maxUV,
+    
+     0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,     maxUV,  0.00,
+    -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,      0.00,  0.00,
+     0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,     maxUV, maxUV,
+     0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,     maxUV, maxUV,
+    -0.5f,  0.5f, -0.5f,        0.0f,  1.0f,  0.0f,      0.00,  0.00,
+    -0.5f,  0.5f,  0.5f,        0.0f,  1.0f,  0.0f,      0.00, maxUV,
+    
+    -0.5f,  0.5f, -0.5f,       -1.0f,  0.0f,  0.0f,     maxUV,  0.00,
+    -0.5f, -0.5f, -0.5f,       -1.0f,  0.0f,  0.0f,      0.00,  0.00,
+    -0.5f,  0.5f,  0.5f,       -1.0f,  0.0f,  0.0f,     maxUV, maxUV,
+    -0.5f,  0.5f,  0.5f,       -1.0f,  0.0f,  0.0f,     maxUV, maxUV,
+    -0.5f, -0.5f, -0.5f,       -1.0f,  0.0f,  0.0f,      0.00,  0.00,
+    -0.5f, -0.5f,  0.5f,       -1.0f,  0.0f,  0.0f,      0.00, maxUV,
+    
+    -0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,      0.00,  0.00,
+     0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,     maxUV,  0.00,
+    -0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,      0.00, maxUV,
+    -0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,      0.00, maxUV,
+     0.5f, -0.5f, -0.5f,        0.0f, -1.0f,  0.0f,     maxUV,  0.00,
+     0.5f, -0.5f,  0.5f,        0.0f, -1.0f,  0.0f,     maxUV, maxUV,
+    
+     0.5f,  0.5f,  0.5f,        0.0f,  0.0f,  1.0f,     maxUV, maxUV,
+    -0.5f,  0.5f,  0.5f,        0.0f,  0.0f,  1.0f,      0.00, maxUV,
+     0.5f, -0.5f,  0.5f,        0.0f,  0.0f,  1.0f,     maxUV,  0.00,
+     0.5f, -0.5f,  0.5f,        0.0f,  0.0f,  1.0f,     maxUV,  0.00,
+    -0.5f,  0.5f,  0.5f,        0.0f,  0.0f,  1.0f,      0.00, maxUV,
+    -0.5f, -0.5f,  0.5f,        0.0f,  0.0f,  1.0f,      0.00,  0.00,
+    
+     0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,     maxUV,  0.00,
+    -0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,      0.00,  0.00,
+     0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,     maxUV, maxUV,
+     0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,     maxUV, maxUV,
+    -0.5f, -0.5f, -0.5f,        0.0f,  0.0f, -1.0f,      0.00,  0.00,
+    -0.5f,  0.5f, -0.5f,        0.0f,  0.0f, -1.0f,      0.00, maxUV,
+};
+#else
 GLfloat gCubeVertexData[216] = 
 {
     // Data layout for each line below is:
@@ -74,12 +131,15 @@ GLfloat gCubeVertexData[216] =
     -0.5f, -0.5f, -0.5f,       0.0f, 0.0f, -1.0f,
     -0.5f, 0.5f, -0.5f,        0.0f, 0.0f, -1.0f
 };
+#endif
+
+
 
 @interface GameViewController () {
     GLuint _program;
     
     GLKMatrix4 _modelViewProjectionMatrix;
-    GLKMatrix3 _normalMatrix;
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  GLKMatrix3 _normalMatrix;
     float _rotation;
     
     GLuint _vertexArray;
@@ -159,6 +219,10 @@ GLfloat gCubeVertexData[216] =
     
     glEnable(GL_DEPTH_TEST);
     
+    
+    
+    
+    
     glGenVertexArraysOES(1, &_vertexArray);
     glBindVertexArrayOES(_vertexArray);
     
@@ -166,12 +230,162 @@ GLfloat gCubeVertexData[216] =
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gCubeVertexData), gCubeVertexData, GL_STATIC_DRAW);
     
+#if ADD_CHECKERBOARD_TEXTURE
+    glEnableVertexAttribArray(GLKVertexAttribPosition);
+    glVertexAttribPointer(GLKVertexAttribPosition, 3, GL_FLOAT, GL_FALSE, 4 /*bytes/float*/ * (3+3+2) /*xyzxyzUV*/, BUFFER_OFFSET(0));
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  glEnableVertexAttribArray(GLKVertexAttribNormal);
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  glVertexAttribPointer(GLKVertexAttribNormal, 3, GL_FLOAT, GL_FALSE, 4 /*bytes/float*/ * (3+3+2) /*xyzxyzUV*/, BUFFER_OFFSET(4 /*bytes/float*/ * (3) /*after xyz*/));
+    
+    // MOVED LOWER IN CODE    glBindVertexArrayOES(0);
+    
+    // based on https://open.gl/textures
+    GLuint mytex;
+    // This line was defective. Replaced by next one -  glGenTextures(GLKVertexAttribTexCoord0, &mytex);
+    glGenTextures(ATTRIB_TEXTURE, &mytex);
+    glBindTexture(GL_TEXTURE_2D, mytex);
+
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // COULD ALSO WORK -        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // COULD ALSO WORK -        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    
+    
+    // COULD ALSO WORK -        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // COULD ALSO WORK -        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // COULD ALSO WORK -        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    
+    
+    // COULD ALSO WORK -        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    typedef enum {
+        TEXTURE_COLOR_CHECKERBOARD_2x2pix__FLOAT__K,
+        TEXTURE_BLACK_WHITE_CHECKERBOARD_2x2pix__FLOAT__K,
+        TEXTURE_BLACK_WHITE_CHECKERBOARD_2x2pix__BYTES__K,
+        TEXTURE_001_4x4pix__K,
+        TEXTURE_002_4x4pix__K,
+        TEXTURE_FRACTAL_64x64pix__BYTES__K,
+        TEXTURE_BW_STRIPES_64x64pix__BYTES__K,
+        TEXTURE_TEST_16x16pix__BYTES__K,
+        TEXTURE_ENUM_SIZE__K
+    } TEXTURE_ENUM;
+    
+    TEXTURE_ENUM textureToUse = TEXTURE_FRACTAL_64x64pix__BYTES__K;
+    
+    switch (textureToUse) {
+        case TEXTURE_COLOR_CHECKERBOARD_2x2pix__FLOAT__K:
+        {
+            //    Color checkerboard
+            float TEXTURE_COLOR_CHECKERBOARD_2x2pix_Array[] = {
+                1.0f, 0.0f, 0.0f,   0.0f, 0.5f, 0.0f,
+                0.0f, 0.0f, 0.5f,   0.0f, 0.0f, 0.0f
+            };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, TEXTURE_COLOR_CHECKERBOARD_2x2pix_Array);
+            break;
+        }
+        case TEXTURE_BLACK_WHITE_CHECKERBOARD_2x2pix__FLOAT__K:
+        {
+            //    Black/white checkerboard
+            float TEXTURE_BLACK_WHITE_CHECKERBOARD_2x2pix_Array[] = {
+                1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f,   1.0f, 1.0f, 1.0f
+            };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, TEXTURE_BLACK_WHITE_CHECKERBOARD_2x2pix_Array);
+            break;
+        }
+        case TEXTURE_BLACK_WHITE_CHECKERBOARD_2x2pix__BYTES__K:
+        {
+            //    Black/white checkerboard
+            GLbyte pixelsBytes[] = {
+                255, 255, 255,     0,   0,   0,
+                0,   0,   0,   255, 255, 255
+            };
+            
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, pixelsBytes);
+            break;
+        }
+        case TEXTURE_001_4x4pix__K:
+        {
+            float pixels4x4[] = {
+                0.2f, 0.2f, 0.0f,   0.2f, 0.4f, 0.0f,   0.2f, 0.6f, 0.0f,   0.2f, 0.6f, 0.0f,
+                0.4f, 0.2f, 1.0f,   0.4f, 0.4f, 0.0f,   0.4f, 0.6f, 0.0f,   0.4f, 0.6f, 0.0f,
+                0.6f, 0.2f, 0.0f,   0.6f, 0.4f, 0.0f,   0.6f, 0.6f, 0.0f,   0.6f, 0.6f, 0.0f,
+                0.8f, 0.2f, 0.0f,   0.8f, 0.4f, 0.0f,   0.8f, 0.6f, 0.0f,   0.8f, 0.6f, 0.0f
+            };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 4, 0, GL_RGB, GL_FLOAT, pixels4x4);
+            break;
+        }
+        case TEXTURE_002_4x4pix__K:
+        {
+            float pixels4x4[] = {
+                1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f,   0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, 0.0f,   0.5f, 0.5f, 0.5f,
+                0.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f, 1.0f,   1.0f, 1.0f, 1.0f,
+                1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   0.5f, 0.5f, 0.5f
+            };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 4, 0, GL_RGB, GL_FLOAT, pixels4x4);
+            break;
+        }
+        case TEXTURE_FRACTAL_64x64pix__BYTES__K:
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, gimp_image_fractal_64x64pix.width, gimp_image_fractal_64x64pix.height, 0, GL_RGB, GL_UNSIGNED_BYTE, gimp_image_fractal_64x64pix.pixel_data);
+            break;
+        }
+        case TEXTURE_BW_STRIPES_64x64pix__BYTES__K:
+
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, gimp_image_BW_LINES.width, gimp_image_BW_LINES.height, 0, GL_RGB, GL_UNSIGNED_BYTE, gimp_image_BW_LINES.pixel_data);
+            break;
+        }
+        case TEXTURE_TEST_16x16pix__BYTES__K:
+
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16, 0, GL_RGB, GL_UNSIGNED_BYTE, pixel_data_test2);
+            break;
+        }
+            
+
+        default:
+            break;
+    }
+    
+    
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    
+    NSLog(@"GLKVertexAttribPosition  = %i\n", GLKVertexAttribPosition);
+    NSLog(@"GLKVertexAttribNormal    = %i\n", GLKVertexAttribNormal);
+    NSLog(@"GLKVertexAttribColor     = %i\n", GLKVertexAttribColor);
+    NSLog(@"GLKVertexAttribTexCoord0 = %i\n", GLKVertexAttribTexCoord0);
+    NSLog(@"GLKVertexAttribTexCoord1 = %i\n", GLKVertexAttribTexCoord1);
+    
+    
+    // This line was defective. Replaced by next one -  glEnableVertexAttribArray(GLKVertexAttribTexCoord0);
+    glEnableVertexAttribArray(ATTRIB_TEXTURE);
+
+    // This line was defective. Replaced by next one -  glVertexAttribPointer(GLKVertexAttribTexCoord0, 2, GL_FLOAT, GL_FALSE, 4 /*bytes/float*/ * (3+3+2) /*xyzxyzUV*/, BUFFER_OFFSET(4 /*bytes/float*/ * (3+3) /*after xyzxyz*/));
+    glVertexAttribPointer(ATTRIB_TEXTURE, 2, GL_FLOAT, GL_FALSE, 4 /*bytes/float*/ * (3+3+2) /*xyzxyzUV*/, BUFFER_OFFSET(4 /*bytes/float*/ * (3+3) /*after xyzxyz*/));
+
+    // This line was defective. Replaced by next one -  glBindAttribLocation(_program, GLKVertexAttribTexCoord0, "texCoordIn");
+    glBindAttribLocation(_program, ATTRIB_TEXTURE, "texCoordIn");
+    
+    glBindVertexArrayOES(0);
+
+    
+#else
     glEnableVertexAttribArray(GLKVertexAttribPosition);
     glVertexAttribPointer(GLKVertexAttribPosition, 3, GL_FLOAT, GL_FALSE, 24, BUFFER_OFFSET(0));
     glEnableVertexAttribArray(GLKVertexAttribNormal);
     glVertexAttribPointer(GLKVertexAttribNormal, 3, GL_FLOAT, GL_FALSE, 24, BUFFER_OFFSET(12));
     
     glBindVertexArrayOES(0);
+
+    
+#endif
+
 }
 
 - (void)tearDownGL
@@ -213,7 +427,7 @@ GLfloat gCubeVertexData[216] =
     modelViewMatrix = GLKMatrix4Rotate(modelViewMatrix, _rotation, 1.0f, 1.0f, 1.0f);
     modelViewMatrix = GLKMatrix4Multiply(baseModelViewMatrix, modelViewMatrix);
     
-    _normalMatrix = GLKMatrix3InvertAndTranspose(GLKMatrix4GetMatrix3(modelViewMatrix), NULL);
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  _normalMatrix = GLKMatrix3InvertAndTranspose(GLKMatrix4GetMatrix3(modelViewMatrix), NULL);
     
     _modelViewProjectionMatrix = GLKMatrix4Multiply(projectionMatrix, modelViewMatrix);
     
@@ -236,7 +450,12 @@ GLfloat gCubeVertexData[216] =
     glUseProgram(_program);
     
     glUniformMatrix4fv(uniforms[UNIFORM_MODELVIEWPROJECTION_MATRIX], 1, 0, _modelViewProjectionMatrix.m);
-    glUniformMatrix3fv(uniforms[UNIFORM_NORMAL_MATRIX], 1, 0, _normalMatrix.m);
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  glUniformMatrix3fv(uniforms[UNIFORM_NORMAL_MATRIX], 1, 0, _normalMatrix.m);
+    
+    // if ever we need a value sweeping between 0 and 1, use sebFloatUniform
+    GLfloat varValue = ((int)(_rotation * 100) % 100 ) / 100.0f;
+    GLint sebasUniformLoc = glGetUniformLocation(_program, "sebFloatUniform");
+    glUniform1f(sebasUniformLoc, varValue);
     
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
@@ -274,7 +493,7 @@ GLfloat gCubeVertexData[216] =
     // Bind attribute locations.
     // This needs to be done prior to linking.
     glBindAttribLocation(_program, GLKVertexAttribPosition, "position");
-    glBindAttribLocation(_program, GLKVertexAttribNormal, "normal");
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  glBindAttribLocation(_program, GLKVertexAttribNormal, "normal");
     
     // Link program.
     if (![self linkProgram:_program]) {
@@ -298,7 +517,8 @@ GLfloat gCubeVertexData[216] =
     
     // Get uniform locations.
     uniforms[UNIFORM_MODELVIEWPROJECTION_MATRIX] = glGetUniformLocation(_program, "modelViewProjectionMatrix");
-    uniforms[UNIFORM_NORMAL_MATRIX] = glGetUniformLocation(_program, "normalMatrix");
+    // NORMALS ARE NOT USED IN THIS TEST VERSION -  uniforms[UNIFORM_NORMAL_MATRIX] = glGetUniformLocation(_program, "normalMatrix");
+
     
     // Release vertex and fragment shaders.
     if (vertShader) {
